@@ -1,0 +1,24 @@
+.data-chart-wrapper {
+    border: 1px solid var(--rs-border);
+    border-radius: var(--rs-radius-md);
+    padding: 14px 16px;
+    background: var(--rs-bg-card);
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-title {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--rs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+/* Force chart SVG background transparent — Telerik renders it inline */
+::deep .k-chart { background: transparent !important; }
+::deep .k-chart > div { background: transparent !important; }
+::deep svg { background: transparent !important; }

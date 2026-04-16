@@ -1,0 +1,50 @@
+@page "/sales-quality-review"
+@using Microsoft.AspNetCore.SignalR.Client
+@using SalesPipelineDemo.Client.Models
+@using SalesPipelineDemo.Client.Components
+
+<div class="app-layout">
+    <!-- LEFT: Agent chat -->
+    <div class="chat-panel">
+        <AgentChat @ref="_chat"
+                   OnBulkApproved="HandleBulkApproved"
+                   OnBulkCancelled="HandleBulkCancelled"
+                   OnComponentDataReceived="HandleComponentDataReceived"
+                   OnRecallView="HandleRecallView" />
+    </div>
+
+    <!-- RIGHT: Dynamic canvas -->
+    <div class="data-panel">
+        @if (_hub is null || _hub.State != HubConnectionState.Connected)
+        {
+            <div class="loading-overlay">
+                <div class="spinner"></div>
+                <p>Connecting to pipeline data...</p>
+            </div>
+        }
+        else
+        {
+            @if (_isPreviewMode)
+            {
+                <div class="preview-mode-badge">
+                    <span class="material-icons-outlined">pending_actions</span>
+                    PREVIEW MODE — changes not yet committed
+                </div>
+            }
+            <div class="canvas-fill">
+                <DynamicCanvas @ref="_canvas"
+                               FetchComponent="FetchComponentData"
+                               OnCellEdit="HandleCellEdit"
+                               OnSubmit="HandleSubmitReview" />
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="error-toast">
+                <span class="material-icons-outlined">error_outline</span>
+                @_error
+            </div>
+        }
+    </div>
+</div>

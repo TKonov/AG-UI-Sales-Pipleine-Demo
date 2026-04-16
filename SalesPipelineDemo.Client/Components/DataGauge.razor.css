@@ -1,0 +1,65 @@
+.data-gauge-wrapper {
+    border: 1px solid var(--rs-border);
+    border-radius: var(--rs-radius-md);
+    padding: 14px 16px;
+    background: var(--rs-bg-card);
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.gauge-title {
+    margin: 0 0 10px 0;
+    font-size: 11px; font-weight: 600;
+    color: var(--rs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.gauge-pair {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 20px;
+    flex: 1;
+}
+
+.gauge-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.gauge-label {
+    font-size: 12px;
+    color: var(--rs-text-muted);
+    font-weight: 500;
+}
+
+.gauge-value {
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.before-value { color: var(--rs-text-muted); }
+.after-value  { color: var(--rs-accent-bright); }
+
+.gauge-subtitle {
+    font-size: 11px;
+    color: var(--rs-text-muted);
+}
+
+.gauge-arrow {
+    font-size: 24px;
+    color: var(--rs-accent);
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Telerik gauge background fix */
+::deep .k-arcgauge,
+::deep .k-circulargauge { background: transparent !important; }

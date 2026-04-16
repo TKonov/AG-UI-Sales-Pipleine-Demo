@@ -1,0 +1,139 @@
+/* ── Resolute-inspired design tokens ──────────────────────────────────────── */
+:root {
+    --rs-bg-deep:       #09023A;
+    --rs-bg-dark:       #100731;
+    --rs-bg-card:       #160A45;
+    --rs-bg-surface:    #1E1255;
+    --rs-bg-elevated:   #251660;
+
+    --rs-accent:        #4423FF;
+    --rs-accent-bright: #00CEFF;
+    --rs-accent-mint:   #00FEC1;
+    --rs-accent-hover:  #5535FF;
+
+    --rs-text-primary:  #FFFFFF;
+    --rs-text-secondary:#B8B0D8;
+    --rs-text-muted:    #7B72A8;
+
+    --rs-border:        rgba(255,255,255,0.08);
+    --rs-border-accent: rgba(0,206,255,0.25);
+
+    --rs-ok:            #00FEC1;
+    --rs-warn:          #FFC183;
+    --rs-danger:        #FF6B8A;
+    --rs-info:          #00CEFF;
+
+    --rs-radius-sm:     6px;
+    --rs-radius-md:     10px;
+    --rs-radius-lg:     16px;
+    --rs-radius-xl:     24px;
+
+    --rs-shadow-card:   0 4px 24px rgba(0,0,0,0.4);
+    --rs-shadow-glow:   0 0 20px rgba(68,35,255,0.3);
+}
+
+/* ── Reset & base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    color: var(--rs-text-primary);
+    background: var(--rs-bg-deep);
+}
+
+#app { height: 100vh; overflow: hidden; }
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    color: var(--rs-text-primary);
+}
+
+a { color: var(--rs-accent-bright); text-decoration: none; }
+a:hover { color: var(--rs-accent-mint); text-decoration: underline; }
+
+/* ── Material Icons baseline ──────────────────────────────────────────────── */
+.material-icons,
+.material-icons-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    line-height: 1;
+    user-select: none;
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rs-bg-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--rs-accent); }
+
+/* ── Blazor infrastructure ────────────────────────────────────────────────── */
+#blazor-error-ui {
+    background: var(--rs-bg-elevated);
+    border-top: 2px solid var(--rs-danger);
+    bottom: 0;
+    color: var(--rs-text-primary);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 -2px 16px rgba(255,107,138,0.2);
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+    color: var(--rs-text-muted);
+}
+
+.blazor-error-boundary {
+    background: var(--rs-bg-elevated);
+    border: 1px solid var(--rs-danger);
+    border-radius: var(--rs-radius-md);
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: var(--rs-text-primary);
+}
+
+.blazor-error-boundary::after { content: "An error has occurred."; }
+
+/* ── Loading spinner ──────────────────────────────────────────────────────── */
+.loading-progress {
+    position: relative;
+    display: block;
+    width: 8rem;
+    height: 8rem;
+    margin: 20vh auto 1rem auto;
+}
+
+.loading-progress circle {
+    fill: none;
+    stroke: var(--rs-bg-elevated);
+    stroke-width: 0.6rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+
+.loading-progress circle:last-child {
+    stroke: var(--rs-accent-bright);
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+    transition: stroke-dasharray 0.05s ease-in-out;
+}
+
+.loading-progress-text {
+    position: absolute;
+    text-align: center;
+    font-weight: 600;
+    color: var(--rs-text-secondary);
+    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+}
+
+.loading-progress-text:after { content: var(--blazor-load-percentage-text, "Loading"); }

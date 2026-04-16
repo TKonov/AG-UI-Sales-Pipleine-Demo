@@ -1,0 +1,13 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/Microsoft.Agents.AI.AGUI/bin/Debug
+/Microsoft.Agents.AI.AGUI/obj
+/SalesPipelineDemo.Client/bin/Debug/net10.0
+/SalesPipelineDemo.Client/obj
+*.user
+/SalesPipelineDemo.Api/bin/Debug/net10.0
+/SalesPipelineDemo.Api/obj/Debug/net10.0
+/SalesPipelineDemo.Api/obj

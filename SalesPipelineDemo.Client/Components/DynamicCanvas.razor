@@ -1,0 +1,55 @@
+@using SalesPipelineDemo.Client.Models
+
+<div class="canvas-wrapper">
+    @if (!_slots.Any())
+    {
+        <div class="canvas-empty">
+            <span class="material-icons-outlined canvas-empty-icon">query_stats</span>
+            <p>Ask the agent a question to render visualizations here.</p>
+            <p class="canvas-hint">Try <em>"Analyze pipeline"</em> or <em>"Close all stale deals"</em></p>
+        </div>
+    }
+    else
+    {
+        <div class="canvas-grid canvas-cols-@Math.Min(_slots.Count, 3)">
+            @foreach (var slot in _slots)
+            {
+                <div class="canvas-slot" @key="slot.Key">
+                    <button class="slot-close" @onclick="() => RemoveSlot(slot.Key)" title="Remove">×</button>
+                    @switch (slot.Value.ComponentType)
+                    {
+                        case "grid":
+                            if (slot.Value.GridContract is not null)
+                            {
+                                <DataGrid Contract="@slot.Value.GridContract"
+                                          OnCellEdit="HandleCellEdit"
+                                          OnSubmit="HandleSubmit" />
+                            }
+                            break;
+                        case "chart":
+                            if (slot.Value.ChartContract is not null)
+                            {
+                                <DataChart Contract="@slot.Value.ChartContract" />
+                            }
+                            break;
+                        case "gauge":
+                            if (slot.Value.GaugeContract is not null)
+                            {
+                                <DataGauge Contract="@slot.Value.GaugeContract" />
+                            }
+                            break;
+                        case "panel":
+                            if (slot.Value.PanelContract is not null)
+                            {
+                                <DataPanel Contract="@slot.Value.PanelContract" />
+                            }
+                            break;
+                        default:
+                            <div class="slot-loading">Loading @slot.Value.ComponentType…</div>
+                            break;
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>

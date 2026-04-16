@@ -1,0 +1,47 @@
+@using SalesPipelineDemo.Client.Models
+@using Telerik.Blazor.Components
+
+<div class="data-gauge-wrapper">
+    <h4 class="gauge-title">@Contract.Title</h4>
+    <div class="gauge-pair">
+
+        <div class="gauge-col">
+            <div class="gauge-label">@Contract.BeforeValue?.Label</div>
+            <TelerikCircularGauge Width="140px" Height="140px">
+                <CircularGaugePointers>
+                    <CircularGaugePointer Value="@(Contract.BeforeValue?.NumericValue ?? 0)"
+                                          Color="#607d8b"
+                                          Size="10" />
+                </CircularGaugePointers>
+                <CircularGaugeScales>
+                    <CircularGaugeScale Min="@Contract.Range.Min"
+                                        Max="@Contract.Range.Max"
+                                        MajorUnit="@Contract.Range.MajorStep" />
+                </CircularGaugeScales>
+            </TelerikCircularGauge>
+            <div class="gauge-value before-value">@Contract.BeforeValue?.DisplayValue</div>
+            <div class="gauge-subtitle">@Contract.BeforeValue?.Subtitle</div>
+        </div>
+
+        <div class="gauge-arrow">→</div>
+
+        <div class="gauge-col">
+            <div class="gauge-label">@Contract.CurrentValue?.Label</div>
+            <TelerikCircularGauge Width="140px" Height="140px">
+                <CircularGaugePointers>
+                    <CircularGaugePointer Value="@(Contract.CurrentValue?.NumericValue ?? 0)"
+                                          Color="#1976d2"
+                                          Size="10" />
+                </CircularGaugePointers>
+                <CircularGaugeScales>
+                    <CircularGaugeScale Min="@Contract.Range.Min"
+                                        Max="@Contract.Range.Max"
+                                        MajorUnit="@Contract.Range.MajorStep" />
+                </CircularGaugeScales>
+            </TelerikCircularGauge>
+            <div class="gauge-value after-value">@Contract.CurrentValue?.DisplayValue</div>
+            <div class="gauge-subtitle">@Contract.CurrentValue?.Subtitle</div>
+        </div>
+
+    </div>
+</div>

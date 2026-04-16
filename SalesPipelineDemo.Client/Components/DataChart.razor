@@ -1,0 +1,58 @@
+@using SalesPipelineDemo.Client.Models
+@using Telerik.Blazor.Components
+@using Telerik.Blazor
+
+<div class="data-chart-wrapper chart-type-@Contract.ChartType.ToLowerInvariant()">
+    <h4 class="chart-title">@Contract.Title</h4>
+    <TelerikChart Width="100%" Height="@(Contract.ChartType == "line" ? "320px" : "220px")">
+        <ChartTitle Text="@Contract.Title" Visible="false" />
+
+        <ChartSeriesItems>
+            @foreach (var series in Contract.Series)
+            {
+                var chartType = Contract.ChartType == "line" ? ChartSeriesType.Line : ChartSeriesType.Bar;
+
+                <ChartSeries Type="@chartType"
+                             Name="@series.Name"
+                             Data="@series.DataPoints"
+                             Field="@nameof(ChartDataPoint.Value)"
+                             CategoryField="@nameof(ChartDataPoint.Label)"
+                             ColorField="@nameof(ChartDataPoint.Color)"
+                             Opacity="0.92">
+                    <ChartSeriesLabels Visible="true"
+                                       Template="@seriesLabelTemplate"
+                                       Position="@(Contract.ChartType == "line" ? ChartSeriesLabelsPosition.Above : ChartSeriesLabelsPosition.OutsideEnd)"
+                                       Color="#B8B0D8"
+                                       Background="transparent" />
+                    @if (Contract.ChartType == "line")
+                    {
+                        <ChartSeriesMarkers Visible="true" Type="ChartSeriesMarkersType.Circle" Size="6" />
+                    }
+                </ChartSeries>
+            }
+        </ChartSeriesItems>
+        <ChartCategoryAxes>
+            <ChartCategoryAxis>
+                <ChartCategoryAxisLabels Color="#7B72A8">
+                    <ChartCategoryAxisLabelsRotation Angle="0" />
+                </ChartCategoryAxisLabels>
+                <ChartCategoryAxisMajorGridLines Color="rgba(255,255,255,0.05)" />
+            </ChartCategoryAxis>
+        </ChartCategoryAxes>
+
+        <ChartValueAxes>
+            <ChartValueAxis>
+                <ChartValueAxisLabels Template="@valueAxisTemplate" Color="#7B72A8" />
+                <ChartValueAxisMajorGridLines Color="rgba(255,255,255,0.05)" />
+            </ChartValueAxis>
+        </ChartValueAxes>
+
+        <ChartLegend Visible="@Contract.Config.ShowLegend"
+                     Position="ChartLegendPosition.Bottom">
+            <ChartLegendLabels Color="#7B72A8" />
+        </ChartLegend>
+        <ChartTooltip Visible="@Contract.Config.ShowTooltip"
+                      Color="#ffffff"
+                      Background="#251660" />
+    </TelerikChart>
+</div>

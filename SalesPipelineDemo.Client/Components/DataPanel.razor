@@ -1,0 +1,14 @@
+@using SalesPipelineDemo.Client.Models
+
+<div class="data-panel-wrapper">
+    <h4 class="panel-title">@Contract.Title</h4>
+    <div class="panel-fields">
+        @foreach (var field in Contract.Fields)
+        {
+            <div class="panel-field @field.CssClass font-@field.FontSize">
+                <span class="field-label">@field.Label</span>
+                <span class="field-value @(field.DataType == "highlight" ? "highlight" : "")">@field.Value</span>
+            </div>
+        }
+    </div>
+</div>

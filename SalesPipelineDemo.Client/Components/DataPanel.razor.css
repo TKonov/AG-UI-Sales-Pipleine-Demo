@@ -1,0 +1,63 @@
+.data-panel-wrapper {
+    border: 1px solid var(--rs-border);
+    border-radius: var(--rs-radius-md);
+    padding: 14px 16px;
+    background: var(--rs-bg-card);
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-title {
+    margin: 0 0 12px 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--rs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.panel-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+    align-content: flex-start;
+}
+
+.panel-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 14px;
+    background: var(--rs-bg-surface);
+    border-radius: var(--rs-radius-sm);
+    border: 1px solid var(--rs-border);
+    min-width: 100px;
+}
+
+.field-label {
+    font-size: 10px;
+    color: var(--rs-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.field-value {
+    font-weight: 700;
+    color: var(--rs-text-primary);
+}
+
+.font-large  .field-value { font-size: 22px; }
+.font-medium .field-value { font-size: 16px; }
+.font-small  .field-value { font-size: 13px; }
+
+.field-value.highlight { font-size: 18px; font-weight: 800; }
+
+.metric-before   .field-value { color: var(--rs-text-muted); }
+.metric-after    .field-value { color: var(--rs-accent-bright); }
+.positive        .field-value { color: var(--rs-accent-mint); }
+.negative        .field-value { color: var(--rs-danger); }
+.metric-progress .field-value { color: var(--rs-text-secondary); }

@@ -1,0 +1,96 @@
+@using SalesPipelineDemo.Client.Models
+
+<div class="data-grid-wrapper">
+    <div class="grid-title-bar">
+        <h3>@Contract.Title</h3>
+        <div class="title-bar-right">
+            <span class="row-count">@Contract.State.TotalRows rows</span>
+            @if (OnSubmit.HasDelegate)
+            {
+                <button class="submit-btn" @onclick="OnSubmit" title="Mark all complete rows as reviewed">
+                    <span class="material-icons-outlined">task_alt</span> Submit Review
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="grid-scroll-container">
+        <div class="grid-header" style="@HeaderGridStyle">
+            @foreach (var col in Contract.Columns)
+            {
+                <div class="grid-cell header-cell" style="width:@(col.Width)px;min-width:@(col.Width)px;">
+                    @col.DisplayName
+                </div>
+            }
+        </div>
+
+        <Virtualize @key="Contract" Items="@Contract.Rows" ItemSize="44" Context="row">
+            <div class="grid-row @row.RowCssClass" style="@HeaderGridStyle">
+                @foreach (var col in Contract.Columns)
+                {
+                    var value    = row.Values.TryGetValue(col.FieldName, out var v) ? v : null;
+                    var cellCss  = row.CellCssClasses.TryGetValue(col.FieldName, out var cc) ? cc : "";
+                    var isEditing = row.IsEditable && row.EditingCellField == col.FieldName;
+
+                    <div class="grid-cell @cellCss @(isEditing ? "editing" : "")"
+                         style="width:@(col.Width)px;min-width:@(col.Width)px;"
+                         @ondblclick="@(() => StartEdit(row, col))"
+                         @key="@($"{row.RowId}:{col.FieldName}")">
+                        @if (isEditing)
+                        {
+                            @RenderEditCell(col, value, row)
+                        }
+                        else
+                        {
+                            @RenderDisplayCell(col, value)
+                        }
+                    </div>
+                }
+            </div>
+        </Virtualize>
+    </div>
+</div>
+
+@code {
+    private RenderFragment RenderDisplayCell(ColumnDefinition col, object? value) =>
+        @<span class="cell-value">
+            @if (value is null || string.IsNullOrEmpty(value.ToString()))
+            {
+                <span class="cell-empty">@(col.EmptyPlaceholder ?? "—")</span>
+            }
+            else
+            {
+                @value
+            }
+        </span>;
+
+    private RenderFragment RenderEditCell(ColumnDefinition col, object? value, GridRow row) =>
+        col.EditType switch
+        {
+            "dropdown" => @<select class="cell-input"
+                                   value="@value"
+                                   @onchange="@(async e => await SaveEdit(row, col, e.Value))"
+                                   @onclick:stopPropagation
+                                   autofocus>
+                <option value="">— select —</option>
+                @foreach (var opt in col.EditOptions)
+                {
+                    <option value="@opt" selected="@(value?.ToString() == opt)">@opt</option>
+                }
+            </select>,
+
+            "number" => @<input type="number"
+                               class="cell-input"
+                               value="@value"
+                               @onchange="@(async e => await SaveEdit(row, col, e.Value))"
+                               @onclick:stopPropagation
+                               autofocus />,
+
+            _ => @<input type="text"
+                        class="cell-input"
+                        value="@value"
+                        @onchange="@(async e => await SaveEdit(row, col, e.Value))"
+                        @onclick:stopPropagation
+                        autofocus />
+        };
+}

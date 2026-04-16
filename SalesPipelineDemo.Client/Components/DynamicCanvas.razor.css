@@ -1,0 +1,99 @@
+.canvas-wrapper {
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.canvas-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--rs-text-muted);
+    gap: 10px;
+    text-align: center;
+    padding: 32px;
+}
+
+.canvas-empty-icon {
+    font-size: 48px !important;
+    color: var(--rs-accent);
+    opacity: 0.5;
+}
+
+.canvas-empty p { margin: 0; font-size: 14px; color: var(--rs-text-secondary); }
+.canvas-hint { font-size: 12px; color: var(--rs-text-muted); }
+.canvas-hint em { color: var(--rs-accent-bright); font-style: normal; }
+
+.canvas-grid {
+    display: grid;
+    gap: 10px;
+    height: 100%;
+    overflow: auto;
+    padding: 2px;
+    box-sizing: border-box;
+    align-content: start;
+}
+
+.canvas-cols-1 { grid-template-columns: 1fr; }
+.canvas-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.canvas-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+.canvas-slot {
+    position: relative;
+    min-height: 260px;
+    max-height: 480px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: var(--rs-radius-md);
+    background: var(--rs-bg-card);
+    border: 1px solid var(--rs-border);
+    box-shadow: var(--rs-shadow-card);
+}
+
+.canvas-slot:has(.data-grid-wrapper),
+.canvas-slot:has(.chart-type-line) {
+    min-height: 340px;
+    max-height: none;
+    grid-column: 1 / -1;
+}
+
+.slot-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--rs-border);
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    color: var(--rs-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.slot-close:hover {
+    background: rgba(255,107,138,0.15);
+    border-color: rgba(255,107,138,0.4);
+    color: var(--rs-danger);
+}
+
+.slot-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--rs-text-muted);
+    font-size: 13px;
+    border: 1px dashed var(--rs-border);
+    border-radius: var(--rs-radius-md);
+}

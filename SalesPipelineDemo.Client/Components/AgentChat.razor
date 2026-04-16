@@ -1,0 +1,144 @@
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="agent-avatar">
+            <span class="material-icons-outlined">smart_toy</span>
+        </div>
+        <div>
+            <div class="agent-name">Sales Pipeline Agent</div>
+            <div class="agent-status @(IsStreaming ? "status-streaming" : "status-ready")">
+                @(IsStreaming ? "Thinking..." : "Ready")
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-messages" @ref="_messagesDiv">
+        @foreach (var msg in Messages)
+        {
+            <div class="message @(msg.Role == "user" ? "user-message" : "agent-message")">
+                @if (msg.Role == "agent")
+                {
+                    <div class="agent-bubble">
+                        @if (msg.StatusEvents.Any())
+                        {
+                            var msgKey = msg.GetHashCode().ToString();
+                            var expanded = _expandedActivity.Contains(msgKey);
+                            var lastEvent = msg.StatusEvents.Last();
+                            var isActive = msg.IsStreaming;
+                            <div class="activity-log @(isActive ? "activity-active" : "")">
+                                <button class="activity-toggle" @onclick="() => ToggleActivity(msgKey)">
+                                    <span class="activity-indicator @(isActive ? "pulse" : "")"></span>
+                                    <span class="activity-summary">
+                                        @if (isActive)
+                                        {
+                                            @lastEvent.Detail
+                                        }
+                                        else
+                                        {
+                                            @($"{msg.StatusEvents.Count} steps — {lastEvent.Detail}")
+                                        }
+                                    </span>
+                                    <span class="activity-chevron">@(expanded ? "▲" : "▼")</span>
+                                </button>
+                                @if (expanded)
+                                {
+                                    <div class="activity-steps">
+                                        @foreach (var ev in Enumerable.Reverse(msg.StatusEvents))
+                                        {
+                                            <div class="activity-step step-@ev.Step">
+                                                <span class="material-icons-outlined step-icon">@StepIcon(ev.Step)</span>
+                                                <span class="step-detail">@ev.Detail</span>
+                                                <span class="step-time">@ev.At.ToString("HH:mm:ss.fff")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        <div class="message-content">@((MarkupString)RenderMarkdown(msg.Content))</div>
+                        @if (msg.RenderRequests.Any() && !msg.IsStreaming)
+                        {
+                            <div class="message-actions">
+                                <button class="recall-ui-btn" title="Restore visualizations shown with this response"
+                                        @onclick="() => RestoreView(msg)">
+                                    <span class="material-icons-outlined">refresh</span>
+                                    <span>Recall UI</span>
+                                </button>
+                            </div>
+                        }
+                        @if (msg.IsStreaming)
+                        {
+                            <span class="cursor-blink"></span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="user-bubble">@msg.Content</div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Bulk operation preview banner -->
+    @if (PendingChanges is not null)
+    {
+        <div class="preview-banner">
+            <div class="preview-info">
+                <span class="material-icons-outlined">pending_actions</span>
+                <div>
+                    <strong>@PendingChanges.MatchingCount changes pending approval</strong>
+                    <span>(highlighted rows)</span>
+                </div>
+            </div>
+            <div class="preview-actions">
+                <button class="btn-approve" @onclick="ApproveBulk">
+                    <span class="material-icons-outlined">check_circle</span> Approve
+                </button>
+                <button class="btn-cancel" @onclick="CancelBulk">
+                    <span class="material-icons-outlined">cancel</span> Cancel
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Demo workflow stepper -->
+    <div class="workflow-stepper">
+        <div class="stepper-label">Demo workflow</div>
+        <div class="stepper-steps">
+            @foreach (var (step, idx) in _workflowSteps.Select((s, i) => (s, i)))
+            {
+                var state = idx < _workflowStep ? "done"
+                          : idx == _workflowStep ? "active"
+                          : "pending";
+                <button class="step-btn step-@state"
+                        disabled="@(IsStreaming || (state == "done"))"
+                        title="@step.Prompt"
+                        @onclick="() => RunWorkflowStep(idx)">
+                    <span class="step-num">@(state == "done" ? "✓" : $"{idx + 1}")</span>
+                    <span class="step-name">@step.Label</span>
+                </button>
+                @if (idx < _workflowSteps.Count - 1)
+                {
+                    <span class="step-arrow @(idx < _workflowStep ? "arrow-done" : "")">›</span>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <div class="input-row">
+            <input type="text"
+                   class="chat-input"
+                   placeholder="Ask anything or click a workflow step above…"
+                   @bind="_inputText"
+                   @bind:event="oninput"
+                   @onkeydown="HandleKeyDown"
+                   disabled="@IsStreaming" />
+            <button class="send-btn"
+                    @onclick="SendCurrentMessage"
+                    disabled="@(IsStreaming || string.IsNullOrWhiteSpace(_inputText))">
+                <span class="material-icons">send</span>
+            </button>
+        </div>
+    </div>
+</div>
