@@ -1,6 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.AI;
 using OpenAI;
 using SalesPipelineDemo.Api.Agent;
 using SalesPipelineDemo.Api.Hubs;
@@ -18,6 +19,9 @@ builder.Services.AddSingleton<MockContractService>();
 
 // Register the AG-UI services
 builder.Services.AddAGUI();
+
+// Register tools
+builder.Services.AddSingleton<SalesPipelineTools>();
 
 // CORS for local Blazor WASM dev
 builder.Services.AddCors(options =>
@@ -37,18 +41,71 @@ app.UseHttpsRedirection();
 app.MapHub<SalesQualityHub>("/hubs/sales-quality");
 
 // ── AG-UI endpoint ────────────────────────────────────────────────────────────
-// The agent now takes IHubContext<SalesQualityHub> so bulk_operation can
-// broadcast SignalR previews internally — Option C hybrid approach.
-var store          = app.Services.GetRequiredService<OpportunityStore>();
-var contractSvc    = app.Services.GetRequiredService<MockContractService>();
-var hubContext     = app.Services.GetRequiredService<IHubContext<SalesQualityHub>>();
-var agentLogger    = app.Services.GetRequiredService<ILogger<SalesPipelineChatClient>>();
-var config         = app.Services.GetRequiredService<IConfiguration>();
+var store = app.Services.GetRequiredService<OpportunityStore>();
+var tools = app.Services.GetRequiredService<SalesPipelineTools>();
+var config = app.Services.GetRequiredService<IConfiguration>();
 
-ChatClientAgent agent = new ChatClientAgent(
-    new SalesPipelineChatClient(store, contractSvc, hubContext, agentLogger, config),
-    instructions: null,
-    name: "SalesPipelineAgent");
+// 1. Build LLM IChatClient
+var section = config.GetSection("LLM");
+var baseUrl = section["BaseUrl"] ?? "https://api.openai.com/v1";
+var apiKey = section["ApiKey"] ?? throw new InvalidOperationException("LLM:ApiKey is required in appsettings");
+var model = section["Model"] ?? "gpt-4o-mini";
+
+var openAiClient = new OpenAIClient(
+    new System.ClientModel.ApiKeyCredential(apiKey),
+    new OpenAIClientOptions { Endpoint = new Uri(baseUrl) });
+
+IChatClient llmClient = openAiClient.GetChatClient(model).AsIChatClient();
+
+// 2. Define Tools
+var aiTools = new List<AITool>
+{
+    AIFunctionFactory.Create(tools.RenderComponentAsync, "render_component"),
+    AIFunctionFactory.Create(tools.BulkOperationAsync, "bulk_operation"),
+    AIFunctionFactory.Create(tools.GetPipelineStatsAsync, "get_pipeline_stats")
+};
+
+// 3. Build System Instructions
+var all = store.GetAll();
+var stats = new
+{
+    total = all.Count,
+    reviewed = all.Count(o => o.IsApproved),
+    missingStage = all.Count(o => string.IsNullOrEmpty(o.Stage) && !o.IsApproved),
+    missingOwner = all.Count(o => string.IsNullOrEmpty(o.Owner) && !o.IsApproved),
+    staleDeals = all.Count(o => o.DaysSinceActivity >= 60 && !o.IsApproved),
+    forecastM = Math.Round((double)all.Sum(o => o.Value * (decimal)(o.Probability / 100.0)) / 1_000_000, 2)
+};
+
+var systemMessage = $"""
+    You are a Sales Pipeline Quality Agent helping a sales manager review and fix their pipeline.
+
+    CURRENT PIPELINE STATE:
+    {System.Text.Json.JsonSerializer.Serialize(stats, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}
+
+    YOUR TOOLS:
+    - render_component: show a data visualisation on the canvas (chart/gauge/panel/grid x all/stale/missing-owner/missing-stage)
+    - bulk_operation: stage a bulk field update for user approval (criteria, targetField, newValue)
+    - get_pipeline_stats: refresh live stats
+
+    BEHAVIOUR:
+    - ALWAYS call render_component before describing what you found — show first, then narrate.
+    - NEVER output data as Markdown tables. All data visualization MUST be done via render_component.
+    - Keep your text responses concise and focused on high-level analysis, trends, and recommendations.
+    - Use markdown bold for numbers and key terms, but avoid repetitive lists of data already visible on the canvas.
+    - For bulk fixes, call bulk_operation then explain the preview to the user.
+    - When the user asks to "analyze", render grid(all)+chart(all)+gauge(all)+panel(all), then summarise issues.
+    - When the user asks about stale deals, render grid+chart for "stale".
+    - When the user asks about owners, render grid+panel for "missing-owner".
+    - When the user asks about stages, render grid+panel for "missing-stage".
+    - For status/summary, render grid(all)+chart(all)+gauge(all)+panel(all).
+    """;
+
+// 4. Create the AIAgent
+AIAgent innerAgent = new ChatClientAgent(llmClient, instructions: systemMessage, tools: aiTools, name: "SalesPipelineAgent");
+
+// 5. Wrap with AgenticUI for AG-UI event passing
+AIAgent agent = new SalesPipelineAgenticUI(innerAgent);
 
 app.MapAGUI("/agents/sales-pipeline", agent);
 

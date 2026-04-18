@@ -10,6 +10,9 @@ public class MockContractService
     private static readonly string[] OwnerOptions =
         ["Alice Johnson", "Bob Martinez", "Carol White", "David Lee", "John Smith"];
 
+    /// <summary>
+    /// Builds a grid contract for the given opportunities, defining columns and row visual styles.
+    /// </summary>
     public GridDataContract BuildGridContract(List<Opportunity> opps) => new()
     {
         Title   = "Sales Opportunities",
@@ -65,6 +68,9 @@ public class MockContractService
         };
     }
 
+    /// <summary>
+    /// Builds a waterfall chart contract comparing starting forecast vs. current state.
+    /// </summary>
     public ChartDataContract BuildChartContract(List<Opportunity> opps, decimal startingForecast)
     {
         var currentForecast = opps.Sum(o => o.Value * (decimal)(o.Probability / 100.0));
@@ -95,6 +101,9 @@ public class MockContractService
         };
     }
 
+    /// <summary>
+    /// Builds a gauge contract reflecting data quality confidence.
+    /// </summary>
     public GaugeDataContract BuildGaugeContract(List<Opportunity> opps)
     {
         var confidence = CalculateConfidence(opps);
@@ -125,6 +134,9 @@ public class MockContractService
         };
     }
 
+    /// <summary>
+    /// Builds a summary panel contract with key forecast metrics.
+    /// </summary>
     public PanelDataContract BuildPanelContract(List<Opportunity> opps, decimal startingForecast)
     {
         var current = opps.Sum(o => o.Value * (decimal)(o.Probability / 100.0));
@@ -146,6 +158,9 @@ public class MockContractService
         };
     }
 
+    /// <summary>
+    /// Builds a line chart contract showing mock improvement trend over time.
+    /// </summary>
     public ChartDataContract BuildTrendChartContract(List<Opportunity> opps)
     {
         var currentConfidence = CalculateConfidence(opps);

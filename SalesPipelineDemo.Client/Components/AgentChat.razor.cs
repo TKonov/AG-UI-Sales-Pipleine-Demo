@@ -37,12 +37,6 @@ public partial class AgentChat
     private ElementReference _messagesDiv;
     private readonly HashSet<string> _expandedActivity = [];
 
-    // COMPONENT arrives as DataContent("application/json") → STATE_SNAPSHOT SSE event
-    //   → ChatResponseUpdate with AdditionalProperties["is_state_snapshot"]=true
-    //   → deserialized as ComponentDataResponse, fires OnComponentDataReceived
-    // STATUS is suppressed server-side (STATE_DELTA is not handled by the client library).
-    // Activity log entries are built from FunctionCallContent (TOOL_CALL_START/END) instead.
-
     // ── Workflow stepper ───────────────────────────────────────────────────────
 
     private sealed record WorkflowStep(string Label, string Prompt);
@@ -58,6 +52,9 @@ public partial class AgentChat
 
     private int _workflowStep = 0;
 
+    /// <summary>
+    /// Runs a predefined workflow step by sending a specific prompt to the agent.
+    /// </summary>
     private async Task RunWorkflowStep(int idx)
     {
         if (IsStreaming) return;
@@ -69,11 +66,14 @@ public partial class AgentChat
         StateHasChanged();
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        AddAgentMessage("Welcome! I'm analyzing your sales pipeline...\n\nAsk me to fix issues in bulk, or double-click any grid cell to edit inline.\n\nTry the quick actions below or type a command.");
-    }
-
+    /// <summary>
+    /// Processes incoming AG-UI events.
+    /// COMPONENT arrives as DataContent("application/json") → STATE_SNAPSHOT SSE event
+    ///   → ChatResponseUpdate with AdditionalProperties["is_state_snapshot"]=true
+    ///   → deserialized as ComponentDataResponse, fires OnComponentDataReceived
+    /// STATUS is suppressed server-side (STATE_DELTA is not handled by the client library).
+    /// Activity log entries are built from FunctionCallContent (TOOL_CALL_START/END) instead.
+    /// </summary>
     public async Task SendMessage(string text)
     {
         if (string.IsNullOrWhiteSpace(text) || IsStreaming) return;
@@ -268,8 +268,10 @@ public partial class AgentChat
         StateHasChanged();
     }
 
-    // "Recall UI" re-requests the same components the agent rendered for that message.
-    // The parent re-fetches data via its hub delegate and calls back with fresh ComponentDataResponse.
+    /// <summary>
+    /// Re-requests the components that the agent originally rendered for a specific message.
+    /// This allows restoring the visual state of the canvas for historical messages.
+    /// </summary>
     private async Task RestoreView(Models.ChatMessage msg)
     {
         if (msg.RenderRequests.Any() && OnRecallView.HasDelegate)
@@ -286,6 +288,9 @@ public partial class AgentChat
         catch { return null; }
     }
 
+    /// <summary>
+    /// Performs minimal markdown rendering for chat messages (bold, italic, lists, newlines).
+    /// </summary>
     private static string RenderMarkdown(string md)
     {
         // Minimal markdown: **bold**, *italic*, newlines, bullet lists
@@ -297,6 +302,9 @@ public partial class AgentChat
         return html;
     }
 
+    /// <summary>
+    /// Formats a raw JSON string for pretty printing.
+    /// </summary>
     private static string PrettyJson(string raw)
     {
         try

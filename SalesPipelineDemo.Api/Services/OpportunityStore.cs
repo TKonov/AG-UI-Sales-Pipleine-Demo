@@ -18,12 +18,21 @@ public class OpportunityStore
         _startingForecast = _opportunities.Sum(o => o.Value * (decimal)(o.Probability / 100.0));
     }
 
+    /// <summary>
+    /// Returns a clone of all opportunities in the store.
+    /// </summary>
     public List<Opportunity> GetAll() =>
         _opportunities.Select(o => o.Clone()).ToList();
 
+    /// <summary>
+    /// Returns a clone of a specific opportunity by ID.
+    /// </summary>
     public Opportunity? Get(string id) =>
         _opportunities.FirstOrDefault(o => o.Id == id)?.Clone();
 
+    /// <summary>
+    /// Updates a field on a specific opportunity and checks for data quality approval.
+    /// </summary>
     public void Update(string id, string field, object? value)
     {
         var opp = _opportunities.FirstOrDefault(o => o.Id == id);
@@ -44,6 +53,9 @@ public class OpportunityStore
         !string.IsNullOrEmpty(o.Owner) && 
         o.DaysSinceActivity < 60;
 
+    /// <summary>
+    /// Finds opportunities matching specific criteria (stale, missing-owner, missing-stage).
+    /// </summary>
     public List<Opportunity> FindMatching(string criteria) =>
         criteria switch
         {
