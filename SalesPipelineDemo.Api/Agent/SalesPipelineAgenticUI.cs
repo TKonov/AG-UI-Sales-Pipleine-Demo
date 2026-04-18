@@ -66,6 +66,31 @@ internal sealed class SalesPipelineAgenticUI : DelegatingAIAgent
                             var bytes = JsonSerializer.SerializeToUtf8Bytes(envelope, this._jsonSerializerOptions);
                             stateEventsToEmit.Add(new DataContent(bytes, "application/json"));
                         }
+                        else if (matchedCall.Name is "bulk_operation")
+                        {
+                            var envelope = new
+                            {
+                                _type = "bulk_preview",
+                                _callId = resultContent.CallId,
+                                data = resultContent.Result
+                            };
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(envelope, this._jsonSerializerOptions);
+                            stateEventsToEmit.Add(new DataContent(bytes, "application/json"));
+                        }
+                        else if (matchedCall.Name is "update_opportunity" or "approve_bulk" or "cancel_bulk" or "submit_review")
+                        {
+                            // Shared State pattern: emit the full state update.
+                            // Result arrives as JsonElement (serialized by AIFunctionFactory), not the original type,
+                            // so we match by tool name instead of result type.
+                            var envelope = new
+                            {
+                                _type = "full_state",
+                                _callId = resultContent.CallId,
+                                data = resultContent.Result
+                            };
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(envelope, this._jsonSerializerOptions);
+                            stateEventsToEmit.Add(new DataContent(bytes, "application/json"));
+                        }
                         else
                         {
                             // Emit a generic result event for other tools to show in the activity log
@@ -111,6 +136,10 @@ internal sealed class SalesPipelineAgenticUI : DelegatingAIAgent
             "render_component" => $"Rendering {Arg("componentType")} — {Arg("dataKey")}",
             "bulk_operation" => $"Staging bulk update: {Arg("criteria")} → {Arg("targetField")} = \"{Arg("newValue")}\"",
             "get_pipeline_stats" => "Reading pipeline statistics",
+            "update_opportunity" => $"Updating {Arg("id")}: {Arg("field")} = \"{Arg("value")}\"",
+            "approve_bulk" => "Committing bulk updates",
+            "cancel_bulk" => "Cancelling bulk operation",
+            "submit_review" => "Submitting reviewed opportunities",
             _ => $"Calling tool: {name}"
         };
     }

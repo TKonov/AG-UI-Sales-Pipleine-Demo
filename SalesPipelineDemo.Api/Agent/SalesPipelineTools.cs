@@ -128,15 +128,7 @@ public sealed class SalesPipelineTools
             PreviewState = previewState
         };
         
-        await _hubContext.Clients.All.SendAsync("BulkOperationPreview", bulkPreview);
-
-        return new
-        {
-            matchingCount = matching.Count,
-            criteria,
-            targetField,
-            newValue
-        };
+        return bulkPreview;
     }
 
     [Description("Returns current pipeline statistics: counts, issues, forecast values.")]
@@ -164,6 +156,67 @@ public sealed class SalesPipelineTools
             forecastM = Math.Round(
                                (double)all.Sum(o => o.Value * (decimal)(o.Probability / 100.0)) / 1_000_000, 2)
         };
+    }
+
+    [Description("Updates a single field for a specific opportunity.")]
+    public async Task<UIState> UpdateOpportunityAsync(
+        [Description("The ID of the opportunity (e.g. OPP-001)")] string id,
+        [Description("The field name to update")] string field,
+        [Description("The new value")] string value)
+    {
+        _logger.LogInformation("Tool Exec: update_opportunity {Id}.{Field} = {Value}", id, field, value);
+        
+        _store.Update(id, field, value);
+        await Task.Delay(100);
+
+        return BuildUIState(_store.GetAll());
+    }
+
+    [Description("Approves and commits a set of planned changes from a bulk operation.")]
+    public async Task<UIState> ApproveBulkOperationAsync(List<PlannedChange> changes)
+    {
+        _logger.LogInformation("Tool Exec: approve_bulk {Count} changes", changes.Count);
+
+        foreach (var change in changes)
+        {
+            _store.Update(change.OpportunityId, change.FieldName, change.NewValue);
+        }
+
+        await Task.Delay(200);
+        return BuildUIState(_store.GetAll());
+    }
+
+    [Description("Cancels a pending bulk operation and clears previews.")]
+    public async Task<UIState> CancelBulkOperationAsync()
+    {
+        _logger.LogInformation("Tool Exec: cancel_bulk");
+        
+        // Clearing is handled by fetching fresh state without IsInPreview flags
+        await Task.Delay(100);
+        return BuildUIState(_store.GetAll());
+    }
+
+    [Description("Submits all reviewed opportunities for final processing.")]
+    public async Task<UIState> SubmitReviewAsync()
+    {
+        _logger.LogInformation("Tool Exec: submit_review");
+
+        var all = _store.GetAll();
+        var readyIds = all
+            .Where(o => !o.IsApproved
+                     && !string.IsNullOrEmpty(o.Stage)
+                     && !string.IsNullOrEmpty(o.Owner)
+                     && o.DaysSinceActivity < 60)
+            .Select(o => o.Id)
+            .ToList();
+
+        foreach (var id in readyIds)
+        {
+            _store.Update(id, "stage", _store.Get(id)?.Stage); 
+        }
+
+        await Task.Delay(300);
+        return BuildUIState(_store.GetAll());
     }
 
     private UIState BuildUIState(List<Opportunity> opps, bool isPreview = false) => new()

@@ -1,154 +1,131 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using SalesPipelineDemo.Client.Models;
 using SalesPipelineDemo.Client.Components;
+using SalesPipelineDemo.Client.Services;
 using System.Text.Json;
 
 namespace SalesPipelineDemo.Client.Pages;
 
-public partial class SalesQualityReview : IAsyncDisposable
+public partial class SalesQualityReview
 {
     [Inject] private NavigationManager Nav { get; set; } = default!;
     [Inject] private IConfiguration Config { get; set; } = default!;
+    [Inject] private AguiClient AguiClient { get; set; } = default!;
 
-    private HubConnection? _hub;
     private AgentChat? _chat;
     private DynamicCanvas? _canvas;
     private string? _error;
     private bool _isPreviewMode;
     private GridDataContract? _latestPreviewGrid;
 
-    private string ApiBase => Config["ApiBase"] ?? "https://localhost:7001";
-
     protected override async Task OnInitializedAsync()
     {
-        _hub = new HubConnectionBuilder()
-            .WithUrl($"{ApiBase}/hubs/sales-quality")
-            .WithAutomaticReconnect()
-            .Build();
-
-        // SignalR: state changed (cell edit, bulk approve, submit review)
-        // Re-fetch all current canvas slots via hub so they show fresh data.
-        _hub.On<JsonElement>("StateUpdated", async (_) =>
-        {
-            _isPreviewMode     = false;
-            _latestPreviewGrid = null;
-            if (_canvas is not null)
-                await _canvas.RefreshAsync();
-            await InvokeAsync(StateHasChanged);
-        });
-
-        // SignalR: bulk_operation preview broadcast from the agent's hub call.
-        // The agent now calls IHubContext.Clients.All internally, so this fires
-        // automatically — the client just applies the preview grid.
-        _hub.On<JsonElement>("BulkOperationPreview", async (element) =>
-        {
-            var preview = JsonSerializer.Deserialize<BulkOperationPreview>(element.GetRawText(),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (preview is null) return;
-
-            _isPreviewMode     = true;
-            _latestPreviewGrid = preview.PreviewState.GridContract;
-            _canvas?.ApplyPreviewGridState(preview.PreviewState.GridContract);
-            _chat?.SetPendingBulk(preview);
-            await InvokeAsync(StateHasChanged);
-        });
-
-        _hub.On<string>("Error", async (msg) =>
-        {
-            _error = msg;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(4000);
-            _error = null;
-            await InvokeAsync(StateHasChanged);
-        });
-
-        _hub.On<int>("SubmitResult", async (count) =>
-        {
-            if (_chat is not null)
-                await _chat.AddMessageAsync($"Submitted {count} reviewed opportunit{(count == 1 ? "y" : "ies")} — marked as ✓ Reviewed.");
-            if (_canvas is not null)
-                await _canvas.RefreshAsync();
-            await InvokeAsync(StateHasChanged);
-        });
-
-        try
-        {
-            await _hub.StartAsync();
-            await _hub.InvokeAsync("StartAnalysis");
-        }
-        catch (Exception ex)
-        {
-            _error = $"Could not connect to API: {ex.Message}";
-        }
+        // No SignalR setup needed. 
+        // We'll rely on the initial agent message or manual triggers to populate the canvas.
     }
 
     // ── AG-UI callbacks ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Agent rendered components — data is already embedded in each response.
-    /// Push directly to canvas; no hub fetch needed.
+    /// Handles full dashboard state snapshots from the agent.
+    /// This replaces the SignalR "StateUpdated" and "BulkOperationPreview" events.
+    /// </summary>
+    private async Task HandleFullStateReceived(UIState state)
+    {
+        _isPreviewMode = state.IsPreviewMode;
+        
+        if (_isPreviewMode)
+        {
+            _latestPreviewGrid = state.GridContract;
+            _canvas?.ApplyPreviewGridState(state.GridContract);
+            
+            // Extract planned changes for the pending bulk view
+            // In a more robust system, this would be part of the shared state
+        }
+        else
+        {
+            _latestPreviewGrid = null;
+            // Update all dashboard components from the state
+            if (_canvas is not null)
+            {
+                var responses = new List<ComponentDataResponse>
+                {
+                    new() { ComponentType = "grid", DataKey = "all", Title = state.GridContract.Title, GridContract = state.GridContract },
+                    new() { ComponentType = "chart", DataKey = "all", Title = state.ChartContract.Title, ChartContract = state.ChartContract },
+                    new() { ComponentType = "gauge", DataKey = "all", Title = state.GaugeContract.Title, GaugeContract = state.GaugeContract },
+                    new() { ComponentType = "panel", DataKey = "all", Title = state.PanelContract.Title, PanelContract = state.PanelContract }
+                };
+                _canvas.SetComponents(responses, clearFirst: true);
+            }
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Agent rendered specific components.
     /// </summary>
     private async Task HandleComponentDataReceived(List<ComponentDataResponse> responses)
     {
         if (_canvas is null) return;
-        // clearFirst=true so a new agent turn replaces the previous canvas layout
         _canvas.SetComponents(responses, clearFirst: true);
         if (_isPreviewMode && _latestPreviewGrid is not null)
             _canvas.ApplyPreviewGridState(_latestPreviewGrid);
         await InvokeAsync(StateHasChanged);
     }
 
-    /// <summary>
-    /// "Recall UI" — user wants to restore visualizations from a prior message.
-    /// Re-fetch via hub (data may have changed since the message was rendered).
-    /// </summary>
     private async Task HandleRecallView(List<RenderComponentRequest> requests)
     {
-        if (_canvas is null || _hub?.State != HubConnectionState.Connected) return;
+        if (_canvas is null) return;
         await _canvas.RecallAsync(requests);
         await InvokeAsync(StateHasChanged);
     }
 
-    // ── Delegate passed to DynamicCanvas for RefreshAsync / RecallAsync ───────
-
-    private async Task<ComponentDataResponse> FetchComponentData(ComponentDataRequest request)
-    {
-        if (_hub?.State != HubConnectionState.Connected)
-            return new ComponentDataResponse { ComponentType = request.ComponentType, DataKey = request.DataKey };
-        return await _hub.InvokeAsync<ComponentDataResponse>("FetchComponentData", request);
-    }
-
-    // ── SignalR hub callbacks (state mutations) ───────────────────────────────
+    // ── Direct Agent Calls (Replacing SignalR Hub Invokes) ─────────────────────
 
     private async Task HandleCellEdit(GridEditEvent edit)
     {
-        if (_hub?.State != HubConnectionState.Connected) return;
-        await _hub.InvokeAsync("UpdateCell", edit);
+        // Instead of calling a hub, we send a "hidden" command to the agent.
+        // We could also use a specialized direct-tool-call method if we extend AguiClient.
+        await SendHiddenAgentCommand($"Update opportunity {edit.RowId} field {edit.FieldName} to {edit.NewValue}");
+    }
+
+    private async Task HandleBulkPreviewReceived(BulkOperationPreview preview)
+    {
+        _isPreviewMode = true;
+        _latestPreviewGrid = preview.PreviewState.GridContract;
+        _canvas?.ApplyPreviewGridState(preview.PreviewState.GridContract);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleBulkApproved(List<PlannedChange> changes)
     {
-        if (_hub?.State != HubConnectionState.Connected) return;
-        await _hub.InvokeAsync("ApproveBulkOperation", changes);
+        // For simplicity, we send a summary command.
+        await SendHiddenAgentCommand("Approve the pending bulk operation");
     }
 
     private async Task HandleBulkCancelled()
     {
-        if (_hub?.State != HubConnectionState.Connected) return;
-        await _hub.InvokeAsync("CancelBulkOperation");
+        await SendHiddenAgentCommand("Cancel the pending bulk operation");
     }
 
     private async Task HandleSubmitReview()
     {
-        if (_hub?.State != HubConnectionState.Connected) return;
-        await _hub.InvokeAsync("SubmitReview");
+        await SendHiddenAgentCommand("Submit my reviewed opportunities");
+    }
+
+    private async Task SendHiddenAgentCommand(string prompt)
+    {
+        if (_chat is not null)
+        {
+            // We can send it via the chat which will trigger the tool and then emit full_state
+            await _chat.SendMessage(prompt);
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_hub is not null)
-            await _hub.DisposeAsync();
+        // Cleanup if needed
     }
 }

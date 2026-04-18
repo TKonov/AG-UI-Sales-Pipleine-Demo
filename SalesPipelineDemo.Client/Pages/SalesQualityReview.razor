@@ -1,5 +1,4 @@
 @page "/sales-quality-review"
-@using Microsoft.AspNetCore.SignalR.Client
 @using SalesPipelineDemo.Client.Models
 @using SalesPipelineDemo.Client.Components
 
@@ -9,35 +8,26 @@
         <AgentChat @ref="_chat"
                    OnBulkApproved="HandleBulkApproved"
                    OnBulkCancelled="HandleBulkCancelled"
+                   OnBulkPreviewReceived="HandleBulkPreviewReceived"
+                   OnFullStateReceived="HandleFullStateReceived"
                    OnComponentDataReceived="HandleComponentDataReceived"
                    OnRecallView="HandleRecallView" />
     </div>
 
     <!-- RIGHT: Dynamic canvas -->
     <div class="data-panel">
-        @if (_hub is null || _hub.State != HubConnectionState.Connected)
+        @if (_isPreviewMode)
         {
-            <div class="loading-overlay">
-                <div class="spinner"></div>
-                <p>Connecting to pipeline data...</p>
+            <div class="preview-mode-badge">
+                <span class="material-icons-outlined">pending_actions</span>
+                PREVIEW MODE — changes not yet committed
             </div>
         }
-        else
-        {
-            @if (_isPreviewMode)
-            {
-                <div class="preview-mode-badge">
-                    <span class="material-icons-outlined">pending_actions</span>
-                    PREVIEW MODE — changes not yet committed
-                </div>
-            }
-            <div class="canvas-fill">
-                <DynamicCanvas @ref="_canvas"
-                               FetchComponent="FetchComponentData"
-                               OnCellEdit="HandleCellEdit"
-                               OnSubmit="HandleSubmitReview" />
-            </div>
-        }
+        <div class="canvas-fill">
+            <DynamicCanvas @ref="_canvas"
+                           OnCellEdit="HandleCellEdit"
+                           OnSubmit="HandleSubmitReview" />
+        </div>
 
         @if (!string.IsNullOrEmpty(_error))
         {

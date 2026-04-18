@@ -62,7 +62,11 @@ var aiTools = new List<AITool>
 {
     AIFunctionFactory.Create(tools.RenderComponentAsync, "render_component"),
     AIFunctionFactory.Create(tools.BulkOperationAsync, "bulk_operation"),
-    AIFunctionFactory.Create(tools.GetPipelineStatsAsync, "get_pipeline_stats")
+    AIFunctionFactory.Create(tools.GetPipelineStatsAsync, "get_pipeline_stats"),
+    AIFunctionFactory.Create(tools.UpdateOpportunityAsync, "update_opportunity"),
+    AIFunctionFactory.Create(tools.ApproveBulkOperationAsync, "approve_bulk"),
+    AIFunctionFactory.Create(tools.CancelBulkOperationAsync, "cancel_bulk"),
+    AIFunctionFactory.Create(tools.SubmitReviewAsync, "submit_review")
 };
 
 // 3. Build System Instructions
@@ -87,6 +91,10 @@ var systemMessage = $"""
     - render_component: show a data visualisation on the canvas (chart/gauge/panel/grid x all/stale/missing-owner/missing-stage)
     - bulk_operation: stage a bulk field update for user approval (criteria, targetField, newValue)
     - get_pipeline_stats: refresh live stats
+    - update_opportunity: update a single field for a specific opportunity
+    - approve_bulk: commit the pending bulk operation
+    - cancel_bulk: cancel the pending bulk operation
+    - submit_review: final submit of all reviewed opportunities
 
     BEHAVIOUR:
     - ALWAYS call render_component before describing what you found — show first, then narrate.
@@ -94,6 +102,10 @@ var systemMessage = $"""
     - Keep your text responses concise and focused on high-level analysis, trends, and recommendations.
     - Use markdown bold for numbers and key terms, but avoid repetitive lists of data already visible on the canvas.
     - For bulk fixes, call bulk_operation then explain the preview to the user.
+    - When the user asks to update an opportunity, use update_opportunity.
+    - When the user confirms a bulk fix, use approve_bulk.
+    - When the user cancels, use cancel_bulk.
+    - When the user wants to submit everything, use submit_review.
     - When the user asks to "analyze", render grid(all)+chart(all)+gauge(all)+panel(all), then summarise issues.
     - When the user asks about stale deals, render grid+chart for "stale".
     - When the user asks about owners, render grid+panel for "missing-owner".

@@ -16,6 +16,11 @@ public partial class AgentChat
 
     [Parameter] public EventCallback<List<PlannedChange>> OnBulkApproved { get; set; }
     [Parameter] public EventCallback OnBulkCancelled { get; set; }
+    [Parameter] public EventCallback<BulkOperationPreview> OnBulkPreviewReceived { get; set; }
+    /// <summary>
+    /// Fired when the agent emits a full dashboard state snapshot (Shared State pattern).
+    /// </summary>
+    [Parameter] public EventCallback<UIState> OnFullStateReceived { get; set; }
     /// <summary>
     /// Fired when the agent emits render_component tool results.
     /// Each item carries the full ComponentDataResponse (data already populated
@@ -114,6 +119,22 @@ public partial class AgentChat
                                 var detail = root.TryGetProperty("detail", out var d) ? d.GetString() ?? "" : "";
                                 agentMsg.StatusEvents.Add(new AgentStatusEvent { Step = step, Detail = detail });
                                 _expandedActivity.Add(agentMsg.GetHashCode().ToString());
+                            }
+                            else if (snapshotType == "full_state")
+                            {
+                                var state = JsonSerializer.Deserialize<UIState>(root.GetProperty("data").GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                if (state is not null && OnFullStateReceived.HasDelegate)
+                                    await OnFullStateReceived.InvokeAsync(state);
+                            }
+                            else if (snapshotType == "bulk_preview")
+                            {
+                                var preview = JsonSerializer.Deserialize<BulkOperationPreview>(root.GetProperty("data").GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                                if (preview is not null)
+                                {
+                                    SetPendingBulk(preview);
+                                    if (OnBulkPreviewReceived.HasDelegate)
+                                        await OnBulkPreviewReceived.InvokeAsync(preview);
+                                }
                             }
                             else if (snapshotType == "component" &&
                                      root.TryGetProperty("data", out var dataEl) &&
